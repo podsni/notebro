@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Testing
+coverage/
+*.test.ts
+*.test.tsx
+**/*.test.ts
+**/*.test.tsx
+vitest.config.ts
+
+# Documentation
+*.md
+!README.md
+CLAUDE.md
+.claude/
+
+# Development files
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Git
+.git/
+.gitignore
