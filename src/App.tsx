@@ -54,10 +54,8 @@ import { iconButtonLabel } from "@/components/icons/IconButton";
 import { AppModal } from "@/components/modals/AppModal";
 import { QuickCaptureModal } from "@/components/modals/QuickCaptureModal";
 import { TemplatePickerModal } from "@/components/modals/TemplatePickerModal";
-import { CanvasEngineModal } from "@/components/modals/CanvasEngineModal";
 import { CanvasEditor } from "@/components/canvas/CanvasEditor";
-import { ExcalidrawEditor } from "@/components/canvas/ExcalidrawEditor";
-import { type HistoryEntry, type Note, type SortMode, type CanvasEngine } from "@/lib/noteLogic";
+import { type HistoryEntry, type Note, type SortMode } from "@/lib/noteLogic";
 import { type NoteTemplate } from "@/lib/noteTemplates";
 import { importDropzoneAccept, importFiles } from "@/features/import-export/importFiles";
 import { getNoteWorker } from "@/workers/client";
@@ -79,7 +77,7 @@ const theme = {
   },
 };
 
-type ModalName = "share" | "history" | "settings" | "import" | "trash" | "shortcuts" | "command" | "quick-capture" | "templates" | "canvas-engine" | null;
+type ModalName = "share" | "history" | "settings" | "import" | "trash" | "shortcuts" | "command" | "quick-capture" | "templates" | null;
 type MobilePane = "list" | "editor";
 type PreviewMode = "edit" | "split" | "preview";
 
@@ -284,8 +282,8 @@ function AppShell() {
     requestAnimationFrame(() => editorRef.current?.focus());
   }
 
-  function createCanvasNote(engine: CanvasEngine = "tldraw") {
-    const id = state.createCanvasNote("Untitled Canvas", state.selectedTag === "all" || isTrashView ? [] : [state.selectedTag], engine);
+  function createCanvasNote() {
+    const id = state.createCanvasNote("Untitled Canvas", state.selectedTag === "all" || isTrashView ? [] : [state.selectedTag]);
     if (isTrashView) state.setSelectedTag("all");
     setLocation(`/note/${id}`);
     setMobilePane("editor");
@@ -466,7 +464,7 @@ function AppShell() {
           <button className="tag-row" type="button" onClick={() => { setModal("templates"); setSidebarOpen(false); }}>
             <Icon path={mdiFileDocumentOutline} size={0.75} /> Templates
           </button>
-          <button className="tag-row" type="button" onClick={() => { setModal("canvas-engine"); setSidebarOpen(false); }}>
+          <button className="tag-row" type="button" onClick={() => { createCanvasNote(); setSidebarOpen(false); }}>
             <Icon path={mdiDrawing} size={0.75} /> New Canvas
           </button>
           <hr style={{ margin: "8px 0", border: "none", borderTop: "1px solid var(--border)" }} />
@@ -526,7 +524,6 @@ function AppShell() {
                   previewLines={state.settings.previewLines}
                   onSelect={() => selectNote(note)}
                   onPin={() => state.togglePin(note.id)}
-                  onDelete={() => { state.deleteNote(note.id); toast.success("Note moved to trash"); }}
                   isTrashView={isTrashView}
                 />
               )}
@@ -544,23 +541,13 @@ function AppShell() {
             <Route>
               {selectedNote ? (
                 selectedNote.noteType === "canvas" ? (
-                  selectedNote.canvasEngine === "tldraw" ? (
-                    <CanvasEditor
-                      note={selectedNote}
-                      onUpdate={state.updateNoteData}
-                      noteListOpen={noteListOpen}
-                      showNoteList={() => setNoteListOpen(true)}
-                      createNote={createNote}
-                    />
-                  ) : (
-                    <ExcalidrawEditor
-                      note={selectedNote}
-                      onUpdate={state.updateNoteData}
-                      noteListOpen={noteListOpen}
-                      showNoteList={() => setNoteListOpen(true)}
-                      createNote={createNote}
-                    />
-                  )
+                  <CanvasEditor
+                    note={selectedNote}
+                    onUpdate={state.updateNoteData}
+                    noteListOpen={noteListOpen}
+                    showNoteList={() => setNoteListOpen(true)}
+                    createNote={createNote}
+                  />
                 ) : (
                   <Editor
                     note={selectedNote}
@@ -610,7 +597,6 @@ function AppShell() {
         <CommandPaletteModal isOpen={modal === "command"} onClose={() => setModal(null)} commands={commandActions} />
         <QuickCaptureModal isOpen={modal === "quick-capture"} onClose={() => setModal(null)} onSave={handleQuickCapture} />
         <TemplatePickerModal isOpen={modal === "templates"} onClose={() => setModal(null)} onSelectTemplate={handleSelectTemplate} />
-        <CanvasEngineModal isOpen={modal === "canvas-engine"} onClose={() => setModal(null)} onSelect={createCanvasNote} />
         <ImportModal isOpen={modal === "import"} onClose={() => setModal(null)} />
       </div>
     </ThemeProvider>
@@ -649,7 +635,7 @@ function MobileTopBar({
   );
 }
 
-function NoteListItem({ note, selected, previewLines, onSelect, onPin, onDelete, isTrashView = false }: { note: Note; selected: boolean; previewLines: number; onSelect: () => void; onPin: () => void; onDelete: () => void; isTrashView?: boolean }) {
+function NoteListItem({ note, selected, previewLines, onSelect, onPin, isTrashView = false }: { note: Note; selected: boolean; previewLines: number; onSelect: () => void; onPin: () => void; isTrashView?: boolean }) {
   const preview = note.noteType === "canvas"
     ? "Canvas whiteboard"
     : note.content.replace(/\s+/g, " ") || "Empty note";
@@ -658,16 +644,9 @@ function NoteListItem({ note, selected, previewLines, onSelect, onPin, onDelete,
     <article className={`note-list-item ${selected ? "selected" : ""}`} onClick={onSelect}>
       <div className="note-list-title">
         <span>{note.title}</span>
-        {!isTrashView ? (
-          <div className="note-list-actions">
-            <button type="button" aria-label="Toggle pin" onClick={event => { event.stopPropagation(); onPin(); }}>
-              <Icon path={note.isPinned ? mdiPin : mdiPinOutline} size={0.68} />
-            </button>
-            <button type="button" aria-label="Delete note" className="note-delete-btn" onClick={event => { event.stopPropagation(); onDelete(); }}>
-              <Icon path={mdiDeleteOutline} size={0.68} />
-            </button>
-          </div>
-        ) : null}
+        {!isTrashView ? <button type="button" aria-label="Toggle pin" onClick={event => { event.stopPropagation(); onPin(); }}>
+          <Icon path={note.isPinned ? mdiPin : mdiPinOutline} size={0.68} />
+        </button> : null}
       </div>
       <p style={{ WebkitLineClamp: previewLines }}>{preview}</p>
       <div className="note-meta">

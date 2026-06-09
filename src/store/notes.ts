@@ -125,8 +125,8 @@ export const useNotesStore = create<NotesState>()(
         });
         return note.id;
       },
-      createCanvasNote: (title = "Untitled Canvas", tags = [], engine: import("@/lib/noteLogic").CanvasEngine = "excalidraw") => {
-        const note = createCanvasNoteDraft(title, tags, engine, now());
+      createCanvasNote: (title = "Untitled Canvas", tags = []) => {
+        const note = createCanvasNoteDraft(title, tags, now());
         set(state => {
           state.notes.unshift(note);
           state.selectedNoteId = note.id;
