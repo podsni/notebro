@@ -151,6 +151,7 @@ export function CanvasEditor({ note, onUpdate, noteListOpen, showNoteList, creat
       {/* Canvas area */}
       <div style={{ flex: 1, position: "relative" }}>
         <Tldraw
+          licenseKey={process.env.BUN_PUBLIC_TLDRAW_LICENSE_KEY}
           persistenceKey={persistenceKey}
           onMount={handleMount}
         />

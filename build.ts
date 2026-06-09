@@ -26,6 +26,7 @@ const result = await Bun.build({
   sourcemap: "linked",
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
+    "process.env.BUN_PUBLIC_TLDRAW_LICENSE_KEY": JSON.stringify(Bun.env.BUN_PUBLIC_TLDRAW_LICENSE_KEY ?? Bun.env.VITE_TLDRAW_LICENSE_KEY ?? ""),
   },
 });
 
