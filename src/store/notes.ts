@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import {
   createNoteDraft,
+  createCanvasNoteDraft,
   filterNotes,
   normalizeTags,
   sortNotes,
@@ -41,7 +42,9 @@ export type NotesState = {
   setSelectedTag: (tag: string) => void;
   selectNote: (id: string) => void;
   createNote: (content?: string, tags?: string[]) => string;
+  createCanvasNote: (title?: string, tags?: string[]) => string;
   updateNote: (id: string, content: string) => void;
+  updateNoteData: (id: string, updates: Partial<Note>) => void;
   deleteNote: (id: string) => void;
   deleteForever: (id: string) => void;
   emptyTrash: () => void;
@@ -122,11 +125,27 @@ export const useNotesStore = create<NotesState>()(
         });
         return note.id;
       },
+      createCanvasNote: (title = "Untitled Canvas", tags = []) => {
+        const note = createCanvasNoteDraft(title, tags, now());
+        set(state => {
+          state.notes.unshift(note);
+          state.selectedNoteId = note.id;
+        });
+        return note.id;
+      },
       updateNote: (id, content) =>
         set(state => {
           const index = state.notes.findIndex(note => note.id === id);
           const note = state.notes[index];
           if (index >= 0 && note) state.notes[index] = updateNoteContent(note, content, now());
+        }),
+      updateNoteData: (id, updates) =>
+        set(state => {
+          const note = state.notes.find(note => note.id === id);
+          if (note) {
+            Object.assign(note, updates);
+            note.updatedAt = now();
+          }
         }),
       deleteNote: id =>
         set(state => {

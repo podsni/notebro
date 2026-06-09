@@ -11,6 +11,7 @@ A modern, feature-rich note-taking application built with React, TypeScript, and
 ### Core Features
 - **Quick Capture**: Instantly create notes with Ctrl/Cmd+N
 - **Rich Text Editing**: Write notes with markdown support
+- **Canvas/Whiteboard Mode**: Infinite canvas with drawing, shapes, text, and connectors (powered by tldraw)
 - **Note Organization**: Archive, favorite, and trash notes
 - **Search**: Fast fuzzy search across all your notes
 - **Templates**: Pre-built templates for meetings, tasks, journals, and more

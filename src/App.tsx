@@ -32,6 +32,7 @@ import {
   mdiWifi,
   mdiLightningBolt,
   mdiFileDocumentOutline,
+  mdiDrawing,
 } from "@mdi/js";
 import { Worker as PdfWorker, Viewer } from "@react-pdf-viewer/core";
 import dayjs from "dayjs";
@@ -53,6 +54,7 @@ import { iconButtonLabel } from "@/components/icons/IconButton";
 import { AppModal } from "@/components/modals/AppModal";
 import { QuickCaptureModal } from "@/components/modals/QuickCaptureModal";
 import { TemplatePickerModal } from "@/components/modals/TemplatePickerModal";
+import { CanvasEditor } from "@/components/canvas/CanvasEditor";
 import { type HistoryEntry, type Note, type SortMode } from "@/lib/noteLogic";
 import { type NoteTemplate } from "@/lib/noteTemplates";
 import { importDropzoneAccept, importFiles } from "@/features/import-export/importFiles";
@@ -280,6 +282,14 @@ function AppShell() {
     requestAnimationFrame(() => editorRef.current?.focus());
   }
 
+  function createCanvasNote() {
+    const id = state.createCanvasNote("Untitled Canvas", state.selectedTag === "all" || isTrashView ? [] : [state.selectedTag]);
+    if (isTrashView) state.setSelectedTag("all");
+    setLocation(`/note/${id}`);
+    setMobilePane("editor");
+    toast.success("Canvas created!");
+  }
+
   function selectNote(note: Note) {
     state.selectNote(note.id);
     setLocation(`/note/${note.id}`);
@@ -454,6 +464,9 @@ function AppShell() {
           <button className="tag-row" type="button" onClick={() => { setModal("templates"); setSidebarOpen(false); }}>
             <Icon path={mdiFileDocumentOutline} size={0.75} /> Templates
           </button>
+          <button className="tag-row" type="button" onClick={() => { createCanvasNote(); setSidebarOpen(false); }}>
+            <Icon path={mdiDrawing} size={0.75} /> New Canvas
+          </button>
           <hr style={{ margin: "8px 0", border: "none", borderTop: "1px solid var(--border)" }} />
           <button className={`tag-row ${state.selectedTag === "all" ? "selected" : ""}`} type="button" onClick={() => { state.setSelectedTag("all"); setSidebarOpen(false); }}>
             <Icon path={mdiArchiveArrowDownOutline} size={0.75} /> All Notes
@@ -527,33 +540,43 @@ function AppShell() {
             </Route>
             <Route>
               {selectedNote ? (
-                <Editor
-                  note={selectedNote}
-                  settings={state.settings}
-                  editorRef={editorRef}
-                  setModal={setModal}
-                  updateContent={content => state.updateNote(selectedNote.id, content)}
-                  togglePin={() => state.togglePin(selectedNote.id)}
-                  toggleMarkdown={() => state.toggleMarkdown(selectedNote.id)}
-                  deleteNote={() => {
-                    state.deleteNote(selectedNote.id);
-                    toast.success("Note moved to trash");
-                  }}
-                  insertChecklist={insertChecklist}
-                  tagDraft={tagDraft}
-                  setTagDraft={setTagDraft}
-                  saveTags={saveTags}
-                  togglePublish={() => selectedNote.isPublished ? state.unpublishNote(selectedNote.id) : state.publishNote(selectedNote.id)}
-                  onBackToList={() => setMobilePane("list")}
-                  noteListOpen={noteListOpen}
-                  showNoteList={() => setNoteListOpen(true)}
-                  createNote={createNote}
-                  isTrashView={isTrashView}
-                  restoreNote={restoreSelectedNote}
-                  deleteForever={deleteSelectedForever}
-                  isNarrow={isNarrow}
-                  tagInputRef={tagInputRef}
-                />
+                selectedNote.noteType === "canvas" ? (
+                  <CanvasEditor
+                    note={selectedNote}
+                    onUpdate={state.updateNoteData}
+                    noteListOpen={noteListOpen}
+                    showNoteList={() => setNoteListOpen(true)}
+                    createNote={createNote}
+                  />
+                ) : (
+                  <Editor
+                    note={selectedNote}
+                    settings={state.settings}
+                    editorRef={editorRef}
+                    setModal={setModal}
+                    updateContent={content => state.updateNote(selectedNote.id, content)}
+                    togglePin={() => state.togglePin(selectedNote.id)}
+                    toggleMarkdown={() => state.toggleMarkdown(selectedNote.id)}
+                    deleteNote={() => {
+                      state.deleteNote(selectedNote.id);
+                      toast.success("Note moved to trash");
+                    }}
+                    insertChecklist={insertChecklist}
+                    tagDraft={tagDraft}
+                    setTagDraft={setTagDraft}
+                    saveTags={saveTags}
+                    togglePublish={() => selectedNote.isPublished ? state.unpublishNote(selectedNote.id) : state.publishNote(selectedNote.id)}
+                    onBackToList={() => setMobilePane("list")}
+                    noteListOpen={noteListOpen}
+                    showNoteList={() => setNoteListOpen(true)}
+                    createNote={createNote}
+                    isTrashView={isTrashView}
+                    restoreNote={restoreSelectedNote}
+                    deleteForever={deleteSelectedForever}
+                    isNarrow={isNarrow}
+                    tagInputRef={tagInputRef}
+                  />
+                )
               ) : (
                 <div className="editor-empty">{isTrashView ? "Select a deleted note." : <Skeleton count={5} />}</div>
               )}
@@ -613,6 +636,10 @@ function MobileTopBar({
 }
 
 function NoteListItem({ note, selected, previewLines, onSelect, onPin, isTrashView = false }: { note: Note; selected: boolean; previewLines: number; onSelect: () => void; onPin: () => void; isTrashView?: boolean }) {
+  const preview = note.noteType === "canvas"
+    ? "Canvas whiteboard"
+    : note.content.replace(/\s+/g, " ") || "Empty note";
+
   return (
     <article className={`note-list-item ${selected ? "selected" : ""}`} onClick={onSelect}>
       <div className="note-list-title">
@@ -621,7 +648,7 @@ function NoteListItem({ note, selected, previewLines, onSelect, onPin, isTrashVi
           <Icon path={note.isPinned ? mdiPin : mdiPinOutline} size={0.68} />
         </button> : null}
       </div>
-      <p style={{ WebkitLineClamp: previewLines }}>{note.content.replace(/\s+/g, " ") || "Empty note"}</p>
+      <p style={{ WebkitLineClamp: previewLines }}>{preview}</p>
       <div className="note-meta">
         <span>{isTrashView && note.deletedAt ? `Deleted ${timeagoFormat(note.deletedAt)}` : timeagoFormat(note.updatedAt)}</span>
         {note.tags.slice(0, 2).map(tag => <span key={tag}>#{tag}</span>)}

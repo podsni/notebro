@@ -7,6 +7,8 @@ export type HistoryEntry = {
   createdAt: string;
 };
 
+export type NoteType = "text" | "canvas";
+
 export type Note = {
   id: string;
   title: string;
@@ -21,6 +23,7 @@ export type Note = {
   updatedAt: string;
   deletedAt: string | null;
   history: HistoryEntry[];
+  noteType?: NoteType;
 };
 
 const fallbackTitle = "Untitled";
@@ -48,6 +51,26 @@ export function createNoteDraft(content = "", tags: string[] = [], now = new Dat
     updatedAt: now,
     deletedAt: null,
     history: [],
+    noteType: "text",
+  };
+}
+
+export function createCanvasNoteDraft(title = "Untitled Canvas", tags: string[] = [], now = new Date().toISOString()): Note {
+  return {
+    id: crypto.randomUUID(),
+    title,
+    content: "",
+    tags: normalizeTags(tags),
+    collaborators: [],
+    isPinned: false,
+    isMarkdown: false,
+    isPublished: false,
+    shareSlug: "",
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    history: [],
+    noteType: "canvas",
   };
 }
 

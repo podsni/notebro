@@ -486,19 +486,47 @@ button {
   display: flex;
   align-items: center;
   align-self: stretch;
-  margin-right: auto;
+  margin-right: 12px;
   border-right: 1px solid var(--border);
 }
 
-.hidden-list-actions .icon-button {
+.hidden-list-actions .icon-button,
+.hidden-list-actions button {
   width: 56px;
   height: 40px;
   border-radius: 0;
-  color: oklch(0.68 0.018 235);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: background 120ms ease;
 }
 
-.hidden-list-actions .icon-button + .icon-button {
+.hidden-list-actions .icon-button:hover,
+.hidden-list-actions button:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.hidden-list-actions .icon-button + .icon-button,
+.hidden-list-actions button + button {
   border-left: 1px solid var(--border);
+}
+
+/* Mobile responsive untuk hidden list actions */
+@media (max-width: 720px) {
+  .hidden-list-actions {
+    margin-right: 8px;
+  }
+
+  .hidden-list-actions .icon-button,
+  .hidden-list-actions button {
+    width: 44px;
+    height: 36px;
+  }
 }
 
 .editor-title {
