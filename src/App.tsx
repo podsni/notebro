@@ -526,6 +526,7 @@ function AppShell() {
                   previewLines={state.settings.previewLines}
                   onSelect={() => selectNote(note)}
                   onPin={() => state.togglePin(note.id)}
+                  onDelete={() => { state.deleteNote(note.id); toast.success("Note moved to trash"); }}
                   isTrashView={isTrashView}
                 />
               )}
@@ -648,7 +649,7 @@ function MobileTopBar({
   );
 }
 
-function NoteListItem({ note, selected, previewLines, onSelect, onPin, isTrashView = false }: { note: Note; selected: boolean; previewLines: number; onSelect: () => void; onPin: () => void; isTrashView?: boolean }) {
+function NoteListItem({ note, selected, previewLines, onSelect, onPin, onDelete, isTrashView = false }: { note: Note; selected: boolean; previewLines: number; onSelect: () => void; onPin: () => void; onDelete: () => void; isTrashView?: boolean }) {
   const preview = note.noteType === "canvas"
     ? "Canvas whiteboard"
     : note.content.replace(/\s+/g, " ") || "Empty note";
@@ -657,9 +658,16 @@ function NoteListItem({ note, selected, previewLines, onSelect, onPin, isTrashVi
     <article className={`note-list-item ${selected ? "selected" : ""}`} onClick={onSelect}>
       <div className="note-list-title">
         <span>{note.title}</span>
-        {!isTrashView ? <button type="button" aria-label="Toggle pin" onClick={event => { event.stopPropagation(); onPin(); }}>
-          <Icon path={note.isPinned ? mdiPin : mdiPinOutline} size={0.68} />
-        </button> : null}
+        {!isTrashView ? (
+          <div className="note-list-actions">
+            <button type="button" aria-label="Toggle pin" onClick={event => { event.stopPropagation(); onPin(); }}>
+              <Icon path={note.isPinned ? mdiPin : mdiPinOutline} size={0.68} />
+            </button>
+            <button type="button" aria-label="Delete note" className="note-delete-btn" onClick={event => { event.stopPropagation(); onDelete(); }}>
+              <Icon path={mdiDeleteOutline} size={0.68} />
+            </button>
+          </div>
+        ) : null}
       </div>
       <p style={{ WebkitLineClamp: previewLines }}>{preview}</p>
       <div className="note-meta">
