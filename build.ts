@@ -1,9 +1,19 @@
 import tailwind from "bun-plugin-tailwind";
-import { rm } from "node:fs/promises";
+import { rm, cp, mkdir } from "node:fs/promises";
 import path from "node:path";
 
 const outdir = path.join(process.cwd(), "dist");
 await rm(outdir, { recursive: true, force: true });
+await mkdir(outdir, { recursive: true });
+
+// Copy public assets first
+const publicDir = path.join(process.cwd(), "public");
+try {
+  await cp(publicDir, outdir, { recursive: true });
+  console.log(" ✓ Public assets copied");
+} catch (err) {
+  console.log(" ℹ No public directory found");
+}
 
 const entrypoints = [...new Bun.Glob("src/**/*.html").scanSync()];
 
