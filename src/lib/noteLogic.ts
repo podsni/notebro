@@ -120,18 +120,50 @@ export function exportNotesToJson(notes: Note[]): string {
 export function importNotesFromJson(json: string): Note[] {
   const parsed = JSON.parse(json);
   if (!Array.isArray(parsed)) return [];
-  return parsed.filter(isNote);
+  return parsed.map(normalizeImportedNote).filter((note): note is Note => Boolean(note));
+}
+
+export function normalizeImportedNote(value: unknown): Note | null {
+  if (!value || typeof value !== "object") return null;
+  const note = value as Partial<Note>;
+  if (
+    typeof note.id !== "string" ||
+    typeof note.title !== "string" ||
+    typeof note.content !== "string" ||
+    !Array.isArray(note.tags) ||
+    typeof note.createdAt !== "string" ||
+    typeof note.updatedAt !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    id: note.id,
+    title: note.title || titleFromContent(note.content),
+    content: note.content,
+    tags: normalizeTags(note.tags.filter((tag): tag is string => typeof tag === "string")),
+    collaborators: Array.isArray(note.collaborators) ? note.collaborators.filter((email): email is string => typeof email === "string") : [],
+    isPinned: Boolean(note.isPinned),
+    isMarkdown: Boolean(note.isMarkdown),
+    isPublished: Boolean(note.isPublished),
+    shareSlug: typeof note.shareSlug === "string" ? note.shareSlug : "",
+    createdAt: note.createdAt,
+    updatedAt: note.updatedAt,
+    deletedAt: typeof note.deletedAt === "string" ? note.deletedAt : null,
+    history: Array.isArray(note.history)
+      ? note.history.filter(
+          (entry): entry is HistoryEntry =>
+            Boolean(entry) &&
+            typeof entry === "object" &&
+            typeof (entry as Partial<HistoryEntry>).id === "string" &&
+            typeof (entry as Partial<HistoryEntry>).title === "string" &&
+            typeof (entry as Partial<HistoryEntry>).content === "string" &&
+            typeof (entry as Partial<HistoryEntry>).createdAt === "string",
+        )
+      : [],
+  };
 }
 
 export function isNote(value: unknown): value is Note {
-  if (!value || typeof value !== "object") return false;
-  const note = value as Partial<Note>;
-  return (
-    typeof note.id === "string" &&
-    typeof note.title === "string" &&
-    typeof note.content === "string" &&
-    Array.isArray(note.tags) &&
-    typeof note.createdAt === "string" &&
-    typeof note.updatedAt === "string"
-  );
+  return Boolean(normalizeImportedNote(value));
 }

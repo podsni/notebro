@@ -20,10 +20,8 @@ import {
   mdiDownloadOutline,
   mdiEyeOutline,
   mdiFilePdfBox,
-  mdiFormatListBulleted,
   mdiFormatListChecks,
   mdiInformationOutline,
-  mdiKeyboardOutline,
   mdiMagnify,
   mdiMenu,
   mdiPin,
@@ -32,15 +30,15 @@ import {
   mdiUploadOutline,
   mdiViewSplitVertical,
   mdiWifi,
+  mdiLightningBolt,
+  mdiFileDocumentOutline,
 } from "@mdi/js";
 import { Worker as PdfWorker, Viewer } from "@react-pdf-viewer/core";
-import { BlobReader, TextWriter, ZipReader } from "@zip.js/zip.js";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import hotkeys from "hotkeys-js";
 import { saveAs } from "file-saver";
 import { format as timeagoFormat } from "timeago.js";
-import Modal from "react-modal";
 import { useDropzone } from "react-dropzone";
 import Skeleton from "react-loading-skeleton";
 import toast, { Toaster } from "react-hot-toast";
@@ -48,24 +46,21 @@ import { Virtuoso } from "react-virtuoso";
 import { Route, Switch, useLocation } from "wouter";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode, RefObject } from "react";
+import type { RefObject } from "react";
 import { CronosExpression, validate as validateCron } from "cronosjs";
-import { createNoteDraft, importNotesFromJson, type HistoryEntry, type Note, type SortMode } from "@/lib/noteLogic";
+import { Icon } from "@/components/icons/Icon";
+import { iconButtonLabel } from "@/components/icons/IconButton";
+import { AppModal } from "@/components/modals/AppModal";
+import { QuickCaptureModal } from "@/components/modals/QuickCaptureModal";
+import { TemplatePickerModal } from "@/components/modals/TemplatePickerModal";
+import { type HistoryEntry, type Note, type SortMode } from "@/lib/noteLogic";
+import { type NoteTemplate } from "@/lib/noteTemplates";
+import { importDropzoneAccept, importFiles } from "@/features/import-export/importFiles";
 import { getNoteWorker } from "@/workers/client";
 import { selectVisibleNotes, useNotesStore, type EditorFontFamily, type NoteDisplayMode, type Settings } from "@/store/notes";
 import "./index.css";
 
-Modal.setAppElement("#root");
 dayjs.extend(relativeTime);
-
-function Icon({ path, size = 1 }: { path: string; size?: number | string }) {
-  const dimension = typeof size === "number" ? `${1.5 * size}rem` : size;
-  return (
-    <svg viewBox="0 0 24 24" width={dimension} height={dimension} aria-hidden="true" focusable="false">
-      <path d={path} fill="currentColor" />
-    </svg>
-  );
-}
 
 const theme = {
   colors: {
@@ -80,7 +75,7 @@ const theme = {
   },
 };
 
-type ModalName = "share" | "history" | "settings" | "import" | "trash" | "shortcuts" | "command" | null;
+type ModalName = "share" | "history" | "settings" | "import" | "trash" | "shortcuts" | "command" | "quick-capture" | "templates" | null;
 type MobilePane = "list" | "editor";
 type PreviewMode = "edit" | "split" | "preview";
 
@@ -90,6 +85,8 @@ const shortcutGroups = [
     items: [
       ["Ctrl + /", "Show keyboard shortcuts"],
       ["Ctrl + K", "Show command palette"],
+      ["Ctrl + Shift + Space", "Quick capture"],
+      ["Ctrl + Shift + T", "New note from template"],
       ["Ctrl + Shift + F", "Toggle focus mode"],
       ["Ctrl + Shift + S", "Focus search field"],
       ["Ctrl + G", "Jump to next match in note"],
@@ -118,14 +115,6 @@ const shortcutGroups = [
 
 function looksLikeMarkdown(content: string) {
   return /(^|\n)(#{1,6}\s|\s*[-*]\s|\s*[-*]\s\[[ xX]\]\s|>|`{3})|\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\)|\$\$?[^$]+\$\$?/.test(content);
-}
-
-function iconButtonLabel(label: string, path: string, onClick?: () => void, active = false) {
-  return (
-    <button className={`icon-button ${active ? "is-active" : ""}`} type="button" aria-label={label} title={label} onClick={onClick}>
-      <Icon path={path} size={0.82} />
-    </button>
-  );
 }
 
 function AppShell() {
@@ -178,13 +167,24 @@ function AppShell() {
   }, [state.settings.theme]);
 
   useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+
+    const channel = new BroadcastChannel("quicknote-sync");
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const unsubscribe = useNotesStore.subscribe(current => {
-      if (typeof BroadcastChannel === "undefined") return;
-      const channel = new BroadcastChannel("quicknote-sync");
-      channel.postMessage({ type: "updated", notes: current.notes, settings: current.settings });
-      channel.close();
+      // Debounce broadcast to avoid excessive messages
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        channel.postMessage({ type: "updated", notes: current.notes, settings: current.settings });
+      }, 100);
     });
-    return unsubscribe;
+
+    return () => {
+      unsubscribe();
+      if (timeoutId) clearTimeout(timeoutId);
+      channel.close();
+    };
   }, []);
 
   useEffect(() => {
@@ -252,8 +252,16 @@ function AppShell() {
       event.preventDefault();
       state.replaceSettings({ focusMode: !state.settings.focusMode });
     });
-    return () => hotkeys.unbind("ctrl+/,ctrl+k,ctrl+shift+i,command+n,ctrl+shift+s,command+l,ctrl+g,ctrl+shift+g,ctrl+shift+u,ctrl+shift+k,ctrl+shift+j,ctrl+shift+y,ctrl+shift+l,ctrl+shift+p,ctrl+shift+c,ctrl+h,ctrl+shift+f");
-  }, [selectedNote?.id, state.query, state.settings.focusMode, state.settings.keyboardShortcuts, state.selectedTag, visibleNotes]);
+    hotkeys("ctrl+shift+space", event => {
+      event.preventDefault();
+      setModal("quick-capture");
+    });
+    hotkeys("ctrl+shift+t", event => {
+      event.preventDefault();
+      setModal("templates");
+    });
+    return () => hotkeys.unbind("ctrl+/,ctrl+k,ctrl+shift+i,command+n,ctrl+shift+s,command+l,ctrl+g,ctrl+shift+g,ctrl+shift+u,ctrl+shift+k,ctrl+shift+j,ctrl+shift+y,ctrl+shift+l,ctrl+shift+p,ctrl+shift+c,ctrl+h,ctrl+shift+f,ctrl+shift+space,ctrl+shift+t");
+  }, [selectedNote?.id, state.query, state.settings.focusMode, state.settings.keyboardShortcuts, state.selectedTag, visibleNotes, state, setLocation, jumpMatch, selectRelativeNote, toggleContentTagsFocus, insertChecklist]);
 
   useEffect(() => {
     const match = location.match(/^\/note\/(.+)$/);
@@ -334,8 +342,17 @@ function AppShell() {
     const start = element.selectionStart;
     const end = element.selectionEnd;
     const next = `${selectedNote.content.slice(0, start)}${insertion}${selectedNote.content.slice(end)}`;
+    const targetPosition = start + insertion.length;
     state.updateNote(selectedNote.id, next);
-    requestAnimationFrame(() => element.setSelectionRange(start + insertion.length, start + insertion.length));
+    // Use double RAF to ensure DOM has updated after state change
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const currentElement = editorRef.current;
+        if (currentElement) {
+          currentElement.setSelectionRange(targetPosition, targetPosition);
+        }
+      });
+    });
   }
 
   function saveTags() {
@@ -386,8 +403,24 @@ function AppShell() {
     toast.success("Export downloaded");
   }
 
+  function handleQuickCapture(content: string, tags: string[]) {
+    const id = state.createNote(content, tags);
+    setLocation(`/note/${id}`);
+    toast.success("Note captured!");
+  }
+
+  function handleSelectTemplate(template: NoteTemplate) {
+    const id = state.createNote(template.content, template.tags);
+    if (isTrashView) state.setSelectedTag("all");
+    setLocation(`/note/${id}`);
+    setMobilePane("editor");
+    toast.success(`Created from ${template.name} template`);
+  }
+
   const commandActions = [
     { label: "Create new note", shortcut: "Ctrl + Shift + I", action: createNote },
+    { label: "Quick capture", shortcut: "Ctrl + Shift + Space", action: () => setModal("quick-capture") },
+    { label: "New from template", shortcut: "Ctrl + Shift + T", action: () => setModal("templates") },
     { label: "Focus search field", shortcut: "Ctrl + Shift + S", action: () => searchRef.current?.focus() },
     { label: "Toggle focus mode", shortcut: "Ctrl + Shift + F", action: () => state.replaceSettings({ focusMode: !state.settings.focusMode }) },
     { label: "Toggle tag list", shortcut: "Ctrl + Shift + U", action: () => setSidebarOpen(value => !value) },
@@ -415,6 +448,13 @@ function AppShell() {
         {sidebarOpen ? <button className="sidebar-backdrop" type="button" aria-label="Close sidebar" onClick={() => setSidebarOpen(false)} /> : null}
         <aside className={`tag-pane ${sidebarOpen ? "mobile-open" : ""}`}>
           <div className="app-menu-main">
+          <button className="tag-row" type="button" onClick={() => { setModal("quick-capture"); setSidebarOpen(false); }}>
+            <Icon path={mdiLightningBolt} size={0.75} /> Quick Capture
+          </button>
+          <button className="tag-row" type="button" onClick={() => { setModal("templates"); setSidebarOpen(false); }}>
+            <Icon path={mdiFileDocumentOutline} size={0.75} /> Templates
+          </button>
+          <hr style={{ margin: "8px 0", border: "none", borderTop: "1px solid var(--border)" }} />
           <button className={`tag-row ${state.selectedTag === "all" ? "selected" : ""}`} type="button" onClick={() => { state.setSelectedTag("all"); setSidebarOpen(false); }}>
             <Icon path={mdiArchiveArrowDownOutline} size={0.75} /> All Notes
           </button>
@@ -532,6 +572,8 @@ function AppShell() {
         />
         <ShortcutsModal isOpen={modal === "shortcuts"} onClose={() => setModal(null)} />
         <CommandPaletteModal isOpen={modal === "command"} onClose={() => setModal(null)} commands={commandActions} />
+        <QuickCaptureModal isOpen={modal === "quick-capture"} onClose={() => setModal(null)} onSave={handleQuickCapture} />
+        <TemplatePickerModal isOpen={modal === "templates"} onClose={() => setModal(null)} onSelectTemplate={handleSelectTemplate} />
         <ImportModal isOpen={modal === "import"} onClose={() => setModal(null)} />
       </div>
     </ThemeProvider>
@@ -860,7 +902,7 @@ function HistoryModal({ note, isOpen, onClose }: { note?: Note; isOpen: boolean;
   );
 }
 
-type SettingsTab = "account" | "display" | "tools";
+type SettingsTab = "general" | "editor" | "appearance" | "data" | "advanced";
 
 function SettingsModal({
   settings,
@@ -879,7 +921,9 @@ function SettingsModal({
 }) {
   const cronOk = validateCron("*/10 * * * *");
   const nextBackup = CronosExpression.parse("*/10 * * * *").nextDate(new Date());
-  const [tab, setTab] = useState<SettingsTab>("display");
+  const [tab, setTab] = useState<SettingsTab>("general");
+  const [searchQuery, setSearchQuery] = useState("");
+
   const displayOptions: Array<[NoteDisplayMode, string, Settings["previewLines"]]> = [
     ["comfy", "Comfy", 2],
     ["condensed", "Condensed", 1],
@@ -900,6 +944,49 @@ function SettingsModal({
     ["serif", "Source Serif"],
     ["mono", "Monospace"],
   ];
+
+  function exportSettings() {
+    const blob = new Blob([JSON.stringify(settings, null, 2)], { type: "application/json" });
+    saveAs(blob, `quicknote-settings-${new Date().toISOString().split("T")[0]}.json`);
+    toast.success("Settings exported");
+  }
+
+  function importSettings() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const imported = JSON.parse(text);
+        onChange(imported);
+        toast.success("Settings imported");
+      } catch (error) {
+        toast.error("Failed to import settings");
+      }
+    };
+    input.click();
+  }
+
+  function resetSettings() {
+    if (!confirm("Reset all settings to default? This cannot be undone.")) return;
+    onChange({
+      sortMode: "modified-desc",
+      previewLines: 2,
+      theme: "dark",
+      editorFontSize: 17,
+      editorFontFamily: "system",
+      focusMode: false,
+      noteDisplay: "condensed",
+      lineLength: "narrow",
+      sortTagsAlphabetically: false,
+      keyboardShortcuts: true,
+      notifyRemoteChanges: false,
+    });
+    toast.success("Settings reset to defaults");
+  }
 
   function radioRow(label: string, checked: boolean, onSelect: () => void) {
     return (
@@ -930,99 +1017,44 @@ function SettingsModal({
 
   return (
     <AppModal isOpen={isOpen} onClose={onClose} title="Settings" className="settings-modal">
+      <div className="settings-search">
+        <Icon path={mdiMagnify} size={0.8} />
+        <input
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Search settings..."
+        />
+      </div>
+
       <div className="settings-tabs" role="tablist" aria-label="Settings sections">
-        {(["account", "display", "tools"] as SettingsTab[]).map(item => (
+        {(["general", "editor", "appearance", "data", "advanced"] as SettingsTab[]).map(item => (
           <button key={item} type="button" role="tab" aria-selected={tab === item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>
             {item[0]?.toUpperCase()}{item.slice(1)}
           </button>
         ))}
       </div>
       <div className="settings-panel">
-        {tab === "account" ? (
-          <div className="settings-section-stack">
-            <section className="settings-section">
-              <h3>ACCOUNT</h3>
-              <div className="settings-card">
-                <div className="settings-static-row"><span>Storage</span><strong>Local IndexedDB</strong></div>
-                <div className="settings-static-row"><span>Sync</span><strong>Local browser tabs</strong></div>
-                <div className="settings-static-row"><span>Autosave</span><strong>{cronOk ? "Active" : "Unavailable"}</strong></div>
-              </div>
-            </section>
-            <section className="settings-section">
-              <h3>BACKUP</h3>
-              <div className="settings-card">
-                <div className="settings-static-row"><span>Next reminder</span><strong>{nextBackup?.toLocaleTimeString() || "Not scheduled"}</strong></div>
-              </div>
-            </section>
-          </div>
-        ) : null}
 
-        {tab === "display" ? (
+        {tab === "advanced" ? (
           <div className="settings-section-stack">
             <section className="settings-section">
-              <h3>NOTE DISPLAY</h3>
+              <h3>DANGER ZONE</h3>
               <div className="settings-card">
-                {displayOptions.map(([value, label, previewLines]) => radioRow(label, settings.noteDisplay === value, () => onChange({ noteDisplay: value, previewLines })))}
+                <button className="settings-danger-button" type="button" onClick={resetSettings}>
+                  <Icon path={mdiDeleteOutline} size={0.75} />
+                  <span>Reset All Settings</span>
+                </button>
+                <p className="settings-note" style={{ margin: "8px 0 0", fontSize: "12px", color: "var(--muted)" }}>
+                  This will reset all preferences to their default values. Your notes will not be affected.
+                </p>
               </div>
             </section>
             <section className="settings-section">
-              <h3>LINE LENGTH</h3>
+              <h3>ABOUT</h3>
               <div className="settings-card">
-                {radioRow("Narrow (65-75 chars)", settings.lineLength === "narrow", () => onChange({ lineLength: "narrow" }))}
-                {radioRow("Full width", settings.lineLength === "full", () => onChange({ lineLength: "full" }))}
-              </div>
-            </section>
-            <section className="settings-section">
-              <h3>FONT</h3>
-              <div className="settings-card">
-                {fontOptions.map(([value, label]) => radioRow(label, settings.editorFontFamily === value, () => onChange({ editorFontFamily: value })))}
-              </div>
-            </section>
-            <section className="settings-section">
-              <h3>FONT SIZE</h3>
-              <div className="settings-card">
-                <label className="settings-slider-row">
-                  <span>{settings.editorFontSize}px</span>
-                  <input type="range" min={14} max={22} value={settings.editorFontSize} onChange={event => onChange({ editorFontSize: Number(event.target.value) })} />
-                </label>
-              </div>
-            </section>
-            <section className="settings-section">
-              <h3>SORT BY</h3>
-              <div className="settings-card">
-                {sortOptions.map(([value, label]) => radioRow(label, settings.sortMode === value, () => onChange({ sortMode: value })))}
-              </div>
-            </section>
-            <section className="settings-section">
-              <h3>TAGS</h3>
-              <div className="settings-card">
-                {switchRow("Sort Alphabetically", settings.sortTagsAlphabetically, () => onChange({ sortTagsAlphabetically: !settings.sortTagsAlphabetically }))}
-              </div>
-            </section>
-            <section className="settings-section">
-              <h3>THEME</h3>
-              <div className="settings-card">
-                {radioRow("System", settings.theme === "system", () => onChange({ theme: "system" }))}
-                {radioRow("Light", settings.theme === "light", () => onChange({ theme: "light" }))}
-                {radioRow("Dark", settings.theme === "dark", () => onChange({ theme: "dark" }))}
-              </div>
-            </section>
-          </div>
-        ) : null}
-
-        {tab === "tools" ? (
-          <div className="settings-section-stack">
-            <section className="settings-section">
-              <h3>TOOLS</h3>
-              <div className="settings-card">
-                {actionRow("Import Notes", () => { onClose(); onImport(); })}
-                {actionRow("Export Notes", onExport)}
-                {switchRow("Keyboard Shortcuts", settings.keyboardShortcuts, () => onChange({ keyboardShortcuts: !settings.keyboardShortcuts }))}
-              </div>
-            </section>
-            <section className="settings-section">
-              <div className="settings-card">
-                {switchRow("Notify on remote changes", settings.notifyRemoteChanges, () => onChange({ notifyRemoteChanges: !settings.notifyRemoteChanges }))}
+                <div className="settings-static-row"><span>Version</span><strong>1.0.0</strong></div>
+                <div className="settings-static-row"><span>Build</span><strong>2026.06.09</strong></div>
+                <div className="settings-static-row"><span>Storage</span><strong>IndexedDB</strong></div>
               </div>
             </section>
           </div>
@@ -1086,6 +1118,14 @@ function ImportModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
   const importNotes = useNotesStore(state => state.importNotes);
   const [pdfUrl, setPdfUrl] = useState("");
   const [pdfStatus, setPdfStatus] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importResults, setImportResults] = useState<string[]>([]);
+
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    };
+  }, [pdfUrl]);
 
   async function exportZip() {
     const bytes = await getNoteWorker().exportZip(notes.filter(note => !note.deletedAt));
@@ -1095,43 +1135,51 @@ function ImportModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
 
   const dropzone = useDropzone({
     multiple: true,
+    accept: importDropzoneAccept,
     async onDrop(files) {
-      for (const file of files) {
-        if (file.name.endsWith(".pdf")) {
-          setPdfUrl(URL.createObjectURL(file));
-          setPdfStatus(await getNoteWorker().describePdf(file.name, file.size));
-          continue;
-        }
-        if (file.name.endsWith(".zip")) {
-          const reader = new ZipReader(new BlobReader(file));
-          const entries = await reader.getEntries();
-          const jsonEntry = entries.find(entry => entry.filename.endsWith(".json"));
-          if (jsonEntry && "getData" in jsonEntry && typeof jsonEntry.getData === "function") {
-            importNotes(importNotesFromJson(await jsonEntry.getData(new TextWriter())));
+      setImporting(true);
+      const results = await importFiles(files, getNoteWorker());
+      const messages: string[] = [];
+      for (const result of results) {
+        messages.push(`${result.fileName}: ${result.message}`);
+        if (result.status === "success") {
+          if (result.notes.length) importNotes(result.notes);
+          if (result.pdfUrl) {
+            setPdfUrl(current => {
+              if (current) URL.revokeObjectURL(current);
+              return result.pdfUrl || "";
+            });
+            setPdfStatus(result.pdfStatus || "");
           }
-          await reader.close();
-          continue;
         }
-        const text = await file.text();
-        if (file.name.endsWith(".json")) importNotes(importNotesFromJson(text));
-        else importNotes([{ ...createNoteDraft(text, ["imported"], new Date().toISOString()), id: crypto.randomUUID(), title: file.name.replace(/\.(txt|md)$/i, ""), isMarkdown: file.name.endsWith(".md") }]);
       }
-      toast.success("Import processed");
+      setImportResults(messages);
+      setImporting(false);
+      const failed = results.filter(result => result.status === "error").length;
+      if (failed) toast.error(`${failed} files failed. Valid files imported.`);
+      else toast.success("Import processed");
     },
   });
+
+  const dropzoneState = dropzone.isDragReject ? "reject" : dropzone.isDragActive ? "active" : importing ? "importing" : "idle";
 
   return (
     <AppModal isOpen={isOpen} onClose={onClose} title="Import and export">
       <div className="modal-stack">
-        <div {...dropzone.getRootProps({ className: "dropzone" })}>
+        <div {...dropzone.getRootProps({ className: `dropzone dropzone-${dropzoneState}` })}>
           <input {...dropzone.getInputProps()} />
           <Icon path={mdiUploadOutline} size={1.2} />
-          <strong>Drop JSON, ZIP, TXT, MD, or PDF files</strong>
+          <strong>{importing ? "Importing files..." : "Drop Markdown, text, PDF, ZIP, or exported JSON files."}</strong>
           <span>TXT and Markdown become notes. PDF opens in preview mode.</span>
         </div>
         <button type="button" className="primary-action" onClick={exportZip}>
           <Icon path={mdiDownloadOutline} size={0.75} /> Export ZIP
         </button>
+        {importResults.length ? (
+          <ul className="import-results">
+            {importResults.map(message => <li key={message}>{message}</li>)}
+          </ul>
+        ) : null}
         {pdfStatus ? <p className="settings-note"><Icon path={mdiFilePdfBox} size={0.75} /> {pdfStatus}</p> : null}
         {pdfUrl ? (
           <div className="pdf-preview">
@@ -1142,18 +1190,6 @@ function ImportModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
         ) : null}
       </div>
     </AppModal>
-  );
-}
-
-function AppModal({ isOpen, onClose, title, children, className = "" }: { isOpen: boolean; onClose: () => void; title: string; children: ReactNode; className?: string }) {
-  return (
-    <Modal isOpen={isOpen} onRequestClose={onClose} className={`app-modal ${className}`} overlayClassName="modal-overlay">
-      <div className="modal-header">
-        <h2>{title}</h2>
-        {iconButtonLabel("Close", mdiClose, onClose)}
-      </div>
-      {children}
-    </Modal>
   );
 }
 

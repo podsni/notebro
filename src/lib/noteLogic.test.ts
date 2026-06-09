@@ -4,7 +4,9 @@ import {
   exportNotesToJson,
   filterNotes,
   importNotesFromJson,
+  normalizeImportedNote,
   sortNotes,
+  titleFromContent,
   updateNoteContent,
   type Note,
 } from "./noteLogic";
@@ -39,6 +41,11 @@ describe("note logic", () => {
     expect(draft.content).toContain("Write the outline");
   });
 
+  test("uses first non-empty line for titles with fallback", () => {
+    expect(titleFromContent("\n\n  Second line  ")).toBe("Second line");
+    expect(titleFromContent("\n\n")).toBe("Untitled");
+  });
+
   test("updates note content while preserving previous version in history", () => {
     const updated = updateNoteContent(note({ content: "old", title: "old" }), "new title\nbody", "2026-06-07T11:00:00.000Z");
 
@@ -71,5 +78,29 @@ describe("note logic", () => {
     const notes = [note({ id: "exported", title: "Exported", tags: ["archive"] })];
 
     expect(importNotesFromJson(exportNotesToJson(notes))).toEqual(notes);
+  });
+
+  test("normalizes older imported note shapes", () => {
+    const imported = normalizeImportedNote({
+      id: "legacy",
+      title: "Legacy",
+      content: "Legacy body",
+      tags: [" Work ", "work", 1],
+      createdAt: baseTime,
+      updatedAt: baseTime,
+    });
+
+    expect(imported).toMatchObject({
+      id: "legacy",
+      title: "Legacy",
+      tags: ["work"],
+      collaborators: [],
+      isPinned: false,
+      isMarkdown: false,
+      isPublished: false,
+      shareSlug: "",
+      deletedAt: null,
+      history: [],
+    });
   });
 });
