@@ -9,7 +9,7 @@ type CanvasEngineModalProps = {
 };
 
 export function CanvasEngineModal({ isOpen, onClose, onSelect }: CanvasEngineModalProps) {
-  const [selected, setSelected] = useState<CanvasEngine>("tldraw");
+  const [selected, setSelected] = useState<CanvasEngine>("excalidraw");
 
   const handleCreate = () => {
     onSelect(selected);
@@ -22,6 +22,24 @@ export function CanvasEngineModal({ isOpen, onClose, onSelect }: CanvasEngineMod
         <p>Select which drawing tool you want to use for your canvas:</p>
 
         <div className="canvas-engine-options">
+          <button
+            type="button"
+            className={`engine-option ${selected === "excalidraw" ? "selected" : ""}`}
+            onClick={() => setSelected("excalidraw")}
+          >
+            <div className="engine-header">
+              <strong>Excalidraw</strong>
+              {selected === "excalidraw" && <span className="check-badge">✓</span>}
+            </div>
+            <p className="engine-description">
+              Hand-drawn style whiteboard. Open source and free.
+              Perfect for sketches, wireframes, and brainstorming.
+            </p>
+            <div className="engine-notice engine-notice-success">
+              ✓ Free and open source (Default)
+            </div>
+          </button>
+
           <button
             type="button"
             className={`engine-option ${selected === "tldraw" ? "selected" : ""}`}
@@ -37,24 +55,6 @@ export function CanvasEngineModal({ isOpen, onClose, onSelect }: CanvasEngineMod
             </p>
             <div className="engine-notice">
               ⚠️ Requires license for production use
-            </div>
-          </button>
-
-          <button
-            type="button"
-            className={`engine-option ${selected === "excalidraw" ? "selected" : ""}`}
-            onClick={() => setSelected("excalidraw")}
-          >
-            <div className="engine-header">
-              <strong>Excalidraw</strong>
-              {selected === "excalidraw" && <span className="check-badge">✓</span>}
-            </div>
-            <p className="engine-description">
-              Hand-drawn style whiteboard. Open source and free.
-              Perfect for sketches, wireframes, and brainstorming.
-            </p>
-            <div className="engine-notice engine-notice-success">
-              ✓ Free and open source
             </div>
           </button>
         </div>

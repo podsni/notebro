@@ -57,7 +57,7 @@ export function createNoteDraft(content = "", tags: string[] = [], now = new Dat
   };
 }
 
-export function createCanvasNoteDraft(title = "Untitled Canvas", tags: string[] = [], engine: CanvasEngine = "tldraw", now = new Date().toISOString()): Note {
+export function createCanvasNoteDraft(title = "Untitled Canvas", tags: string[] = [], engine: CanvasEngine = "excalidraw", now = new Date().toISOString()): Note {
   return {
     id: crypto.randomUUID(),
     title,

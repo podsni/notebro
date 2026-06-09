@@ -543,8 +543,8 @@ function AppShell() {
             <Route>
               {selectedNote ? (
                 selectedNote.noteType === "canvas" ? (
-                  selectedNote.canvasEngine === "excalidraw" ? (
-                    <ExcalidrawEditor
+                  selectedNote.canvasEngine === "tldraw" ? (
+                    <CanvasEditor
                       note={selectedNote}
                       onUpdate={state.updateNoteData}
                       noteListOpen={noteListOpen}
@@ -552,7 +552,7 @@ function AppShell() {
                       createNote={createNote}
                     />
                   ) : (
-                    <CanvasEditor
+                    <ExcalidrawEditor
                       note={selectedNote}
                       onUpdate={state.updateNoteData}
                       noteListOpen={noteListOpen}
