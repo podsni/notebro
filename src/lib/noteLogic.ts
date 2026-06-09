@@ -8,6 +8,7 @@ export type HistoryEntry = {
 };
 
 export type NoteType = "text" | "canvas";
+export type CanvasEngine = "tldraw" | "excalidraw";
 
 export type Note = {
   id: string;
@@ -24,6 +25,7 @@ export type Note = {
   deletedAt: string | null;
   history: HistoryEntry[];
   noteType?: NoteType;
+  canvasEngine?: CanvasEngine;
 };
 
 const fallbackTitle = "Untitled";
@@ -55,7 +57,7 @@ export function createNoteDraft(content = "", tags: string[] = [], now = new Dat
   };
 }
 
-export function createCanvasNoteDraft(title = "Untitled Canvas", tags: string[] = [], now = new Date().toISOString()): Note {
+export function createCanvasNoteDraft(title = "Untitled Canvas", tags: string[] = [], engine: CanvasEngine = "tldraw", now = new Date().toISOString()): Note {
   return {
     id: crypto.randomUUID(),
     title,
@@ -71,6 +73,7 @@ export function createCanvasNoteDraft(title = "Untitled Canvas", tags: string[] 
     deletedAt: null,
     history: [],
     noteType: "canvas",
+    canvasEngine: engine,
   };
 }
 

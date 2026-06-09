@@ -54,8 +54,10 @@ import { iconButtonLabel } from "@/components/icons/IconButton";
 import { AppModal } from "@/components/modals/AppModal";
 import { QuickCaptureModal } from "@/components/modals/QuickCaptureModal";
 import { TemplatePickerModal } from "@/components/modals/TemplatePickerModal";
+import { CanvasEngineModal } from "@/components/modals/CanvasEngineModal";
 import { CanvasEditor } from "@/components/canvas/CanvasEditor";
-import { type HistoryEntry, type Note, type SortMode } from "@/lib/noteLogic";
+import { ExcalidrawEditor } from "@/components/canvas/ExcalidrawEditor";
+import { type HistoryEntry, type Note, type SortMode, type CanvasEngine } from "@/lib/noteLogic";
 import { type NoteTemplate } from "@/lib/noteTemplates";
 import { importDropzoneAccept, importFiles } from "@/features/import-export/importFiles";
 import { getNoteWorker } from "@/workers/client";
@@ -77,7 +79,7 @@ const theme = {
   },
 };
 
-type ModalName = "share" | "history" | "settings" | "import" | "trash" | "shortcuts" | "command" | "quick-capture" | "templates" | null;
+type ModalName = "share" | "history" | "settings" | "import" | "trash" | "shortcuts" | "command" | "quick-capture" | "templates" | "canvas-engine" | null;
 type MobilePane = "list" | "editor";
 type PreviewMode = "edit" | "split" | "preview";
 
@@ -282,8 +284,8 @@ function AppShell() {
     requestAnimationFrame(() => editorRef.current?.focus());
   }
 
-  function createCanvasNote() {
-    const id = state.createCanvasNote("Untitled Canvas", state.selectedTag === "all" || isTrashView ? [] : [state.selectedTag]);
+  function createCanvasNote(engine: CanvasEngine = "tldraw") {
+    const id = state.createCanvasNote("Untitled Canvas", state.selectedTag === "all" || isTrashView ? [] : [state.selectedTag], engine);
     if (isTrashView) state.setSelectedTag("all");
     setLocation(`/note/${id}`);
     setMobilePane("editor");
@@ -464,7 +466,7 @@ function AppShell() {
           <button className="tag-row" type="button" onClick={() => { setModal("templates"); setSidebarOpen(false); }}>
             <Icon path={mdiFileDocumentOutline} size={0.75} /> Templates
           </button>
-          <button className="tag-row" type="button" onClick={() => { createCanvasNote(); setSidebarOpen(false); }}>
+          <button className="tag-row" type="button" onClick={() => { setModal("canvas-engine"); setSidebarOpen(false); }}>
             <Icon path={mdiDrawing} size={0.75} /> New Canvas
           </button>
           <hr style={{ margin: "8px 0", border: "none", borderTop: "1px solid var(--border)" }} />
@@ -541,13 +543,23 @@ function AppShell() {
             <Route>
               {selectedNote ? (
                 selectedNote.noteType === "canvas" ? (
-                  <CanvasEditor
-                    note={selectedNote}
-                    onUpdate={state.updateNoteData}
-                    noteListOpen={noteListOpen}
-                    showNoteList={() => setNoteListOpen(true)}
-                    createNote={createNote}
-                  />
+                  selectedNote.canvasEngine === "excalidraw" ? (
+                    <ExcalidrawEditor
+                      note={selectedNote}
+                      onUpdate={state.updateNoteData}
+                      noteListOpen={noteListOpen}
+                      showNoteList={() => setNoteListOpen(true)}
+                      createNote={createNote}
+                    />
+                  ) : (
+                    <CanvasEditor
+                      note={selectedNote}
+                      onUpdate={state.updateNoteData}
+                      noteListOpen={noteListOpen}
+                      showNoteList={() => setNoteListOpen(true)}
+                      createNote={createNote}
+                    />
+                  )
                 ) : (
                   <Editor
                     note={selectedNote}
@@ -597,6 +609,7 @@ function AppShell() {
         <CommandPaletteModal isOpen={modal === "command"} onClose={() => setModal(null)} commands={commandActions} />
         <QuickCaptureModal isOpen={modal === "quick-capture"} onClose={() => setModal(null)} onSave={handleQuickCapture} />
         <TemplatePickerModal isOpen={modal === "templates"} onClose={() => setModal(null)} onSelectTemplate={handleSelectTemplate} />
+        <CanvasEngineModal isOpen={modal === "canvas-engine"} onClose={() => setModal(null)} onSelect={createCanvasNote} />
         <ImportModal isOpen={modal === "import"} onClose={() => setModal(null)} />
       </div>
     </ThemeProvider>
