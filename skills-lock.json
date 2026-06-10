@@ -5,13 +5,13 @@
       "source": "anthropics/skills",
       "sourceType": "github",
       "skillPath": "skills/frontend-design/SKILL.md",
-      "computedHash": "516bd2154eb843a8240e43d5b285229129853114ad7075a5e141e1c08e408c84"
+      "computedHash": "4eabc66183767153e404b39d1b839b1c37f2d82d86f0a0d7e880a579d8d62336"
     },
     "impeccable": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
       "skillPath": ".agents/skills/impeccable/SKILL.md",
-      "computedHash": "b45b2876561b6fe330ef2cdcb793750473584dff3d27de0744cfefab3e62a0fb"
+      "computedHash": "1e379bf23b32000ec12e120fcfcec7f2f3845ed5c210864ad7467ad525de065f"
     }
   }
 }
