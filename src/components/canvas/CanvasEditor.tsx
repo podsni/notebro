@@ -40,35 +40,13 @@ export function CanvasEditor({ note, onUpdate, noteListOpen, showNoteList, creat
 
   return (
     <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}>
-      {/* Canvas title bar */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        padding: "8px 16px",
-        background: "var(--surface)",
-        borderBottom: "1px solid var(--border)",
-        flexShrink: 0,
-      }}>
-        {/* Show note list button when hidden */}
+      <div className="canvas-toolbar">
         {!noteListOpen && (
           <div className="hidden-list-actions">
-            <button
-              type="button"
-              className="icon-button"
-              onClick={createNote}
-              aria-label="New note"
-              title="New note"
-            >
+            <button type="button" className="icon-button" onClick={createNote} aria-label="New note" title="New note">
               <Icon path={mdiSquareEditOutline} size={0.75} />
             </button>
-            <button
-              type="button"
-              className="icon-button"
-              onClick={showNoteList}
-              aria-label="Show notes list"
-              title="Show notes list"
-            >
+            <button type="button" className="icon-button" onClick={showNoteList} aria-label="Show notes list" title="Show notes list">
               <Icon path={mdiViewSplitVertical} size={0.75} />
             </button>
           </div>
@@ -85,63 +63,24 @@ export function CanvasEditor({ note, onUpdate, noteListOpen, showNoteList, creat
                 if (e.key === "Escape") handleCancelEdit();
               }}
               autoFocus
-              style={{
-                flex: 1,
-                padding: "4px 8px",
-                fontSize: "14px",
-                border: "1px solid var(--primary)",
-                borderRadius: "4px",
-                outline: "none",
-              }}
+              className="canvas-title-input"
             />
-            <button
-              type="button"
-              onClick={handleSaveTitle}
-              style={{
-                padding: "4px 12px",
-                fontSize: "13px",
-                background: "var(--primary)",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-              }}
-            >
+            <button type="button" onClick={handleSaveTitle} className="canvas-title-save">
               Save
             </button>
-            <button
-              type="button"
-              onClick={handleCancelEdit}
-              aria-label="Cancel"
-              style={{
-                padding: "4px",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <Icon path={mdiClose} size={0.8} />
+            <button type="button" onClick={handleCancelEdit} aria-label="Cancel rename" className="canvas-cancel-btn">
+              <Icon path={mdiClose} size={0.75} />
             </button>
           </>
         ) : (
           <>
-            <strong style={{ flex: 1, fontSize: "14px" }}>{note.title}</strong>
+            <strong className="canvas-title">{note.title}</strong>
             <button
               type="button"
               onClick={() => setIsEditingTitle(true)}
               aria-label="Rename canvas"
               title="Rename canvas"
-              style={{
-                padding: "4px",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                color: "var(--muted)",
-              }}
+              className="canvas-rename-btn"
             >
               <Icon path={mdiPencil} size={0.7} />
             </button>
@@ -150,18 +89,7 @@ export function CanvasEditor({ note, onUpdate, noteListOpen, showNoteList, creat
               onClick={deleteNote}
               aria-label="Move canvas to trash"
               title="Move to trash"
-              style={{
-                padding: "4px 8px",
-                background: "transparent",
-                border: "1px solid var(--danger)",
-                borderRadius: "6px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                color: "var(--danger)",
-                fontSize: "12px",
-              }}
+              className="canvas-delete-btn"
             >
               <Icon path={mdiDeleteOutline} size={0.7} />
               <span>Delete</span>
@@ -170,7 +98,6 @@ export function CanvasEditor({ note, onUpdate, noteListOpen, showNoteList, creat
         )}
       </div>
 
-      {/* Canvas area */}
       <div style={{ flex: 1, position: "relative" }}>
         <Tldraw
           licenseKey={process.env.BUN_PUBLIC_TLDRAW_LICENSE_KEY}

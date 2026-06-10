@@ -406,7 +406,7 @@ button {
   white-space: nowrap;
 }
 
-.note-list-title button {
+.note-list-title > button {
   display: grid;
   place-items: center;
   border: 0;
@@ -418,7 +418,7 @@ button {
 .note-list-item-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 1px;
   margin-left: auto;
   flex-shrink: 0;
 }
@@ -426,10 +426,15 @@ button {
 .note-action-btn {
   display: grid;
   place-items: center;
-  padding: 3px;
-  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
   opacity: 0;
-  transition: opacity 150ms, color 150ms, background 150ms;
+  transition: opacity 140ms ease, color 120ms ease, background 120ms ease;
 }
 
 .note-list-item:hover .note-action-btn,
@@ -437,9 +442,160 @@ button {
   opacity: 1;
 }
 
+.note-action-btn:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.note-action-btn:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
 .note-delete-btn:hover {
-  color: var(--danger) !important;
-  background: oklch(from var(--danger) l c h / 0.12);
+  background: oklch(from var(--danger) l c h / 0.1);
+  color: var(--danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-action-btn {
+    transition: none;
+  }
+}
+
+/* Canvas title bar */
+.canvas-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  min-height: 40px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.canvas-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.canvas-title-input {
+  flex: 1;
+  padding: 3px 8px;
+  font-size: 13px;
+  border: 1px solid var(--primary);
+  border-radius: 5px;
+  outline: none;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.canvas-title-save {
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--primary);
+  color: oklch(1 0 0);
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: filter 120ms ease;
+}
+
+.canvas-title-save:hover {
+  filter: brightness(1.1);
+}
+
+.canvas-title-save:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.canvas-rename-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.canvas-rename-btn:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.canvas-rename-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.canvas-cancel-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.canvas-cancel-btn:hover {
+  background: var(--raised);
+  color: var(--ink);
+}
+
+.canvas-cancel-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.canvas-delete-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px 3px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--danger);
+  background: transparent;
+  border: 1px solid oklch(from var(--danger) l c h / 0.35);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.canvas-delete-btn:hover {
+  background: oklch(from var(--danger) l c h / 0.08);
+  border-color: var(--danger);
+}
+
+.canvas-delete-btn:focus-visible {
+  outline: 2px solid var(--danger);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-title-save,
+  .canvas-rename-btn,
+  .canvas-cancel-btn,
+  .canvas-delete-btn {
+    transition: none;
+  }
 }
 
 .note-list-item p {
