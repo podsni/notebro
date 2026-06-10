@@ -1077,15 +1077,6 @@ function SettingsModal({
 
   return (
     <AppModal isOpen={isOpen} onClose={onClose} title="Settings" className="settings-modal">
-      <div className="settings-search">
-        <Icon path={mdiMagnify} size={0.8} />
-        <input
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Search settings..."
-        />
-      </div>
-
       <div className="settings-tabs" role="tablist" aria-label="Settings sections">
         {(["general", "editor", "appearance", "data", "advanced"] as SettingsTab[]).map(item => (
           <button key={item} type="button" role="tab" aria-selected={tab === item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>
@@ -1094,6 +1085,113 @@ function SettingsModal({
         ))}
       </div>
       <div className="settings-panel">
+
+        {tab === "general" ? (
+          <div className="settings-section-stack">
+            <section className="settings-section">
+              <h3>SORTING</h3>
+              <div className="settings-card">
+                {sortOptions.map(([value, label]) => radioRow(label, settings.sortMode === value, () => onChange({ sortMode: value })))}
+              </div>
+            </section>
+            <section className="settings-section">
+              <h3>NOTE LIST</h3>
+              <div className="settings-card">
+                {displayOptions.map(([value, label]) => radioRow(label, settings.noteDisplay === value, () => onChange({ noteDisplay: value, previewLines: displayOptions.find(o => o[0] === value)?.[2] ?? 2 })))}
+              </div>
+            </section>
+            <section className="settings-section">
+              <h3>TAGS</h3>
+              <div className="settings-card">
+                {switchRow("Sort tags alphabetically", settings.sortTagsAlphabetically, () => onChange({ sortTagsAlphabetically: !settings.sortTagsAlphabetically }))}
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {tab === "editor" ? (
+          <div className="settings-section-stack">
+            <section className="settings-section">
+              <h3>FONT</h3>
+              <div className="settings-card">
+                {fontOptions.map(([value, label]) => radioRow(label, settings.editorFontFamily === value, () => onChange({ editorFontFamily: value })))}
+              </div>
+            </section>
+            <section className="settings-section">
+              <h3>FONT SIZE</h3>
+              <div className="settings-card">
+                <div className="settings-slider-row">
+                  <span>Size — {settings.editorFontSize}px</span>
+                  <input
+                    type="range"
+                    min={13}
+                    max={22}
+                    step={1}
+                    value={settings.editorFontSize}
+                    onChange={e => onChange({ editorFontSize: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+            </section>
+            <section className="settings-section">
+              <h3>LINE LENGTH</h3>
+              <div className="settings-card">
+                {radioRow("Narrow", settings.lineLength === "narrow", () => onChange({ lineLength: "narrow" }))}
+                {radioRow("Full width", settings.lineLength === "full", () => onChange({ lineLength: "full" }))}
+              </div>
+            </section>
+            <section className="settings-section">
+              <h3>BEHAVIOUR</h3>
+              <div className="settings-card">
+                {switchRow("Keyboard shortcuts", settings.keyboardShortcuts, () => onChange({ keyboardShortcuts: !settings.keyboardShortcuts }))}
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {tab === "appearance" ? (
+          <div className="settings-section-stack">
+            <section className="settings-section">
+              <h3>THEME</h3>
+              <div className="settings-card">
+                {radioRow("System", settings.theme === "system", () => onChange({ theme: "system" }))}
+                {radioRow("Light", settings.theme === "light", () => onChange({ theme: "light" }))}
+                {radioRow("Dark", settings.theme === "dark", () => onChange({ theme: "dark" }))}
+              </div>
+            </section>
+            <section className="settings-section">
+              <h3>FOCUS MODE</h3>
+              <div className="settings-card">
+                {switchRow("Hide toolbar in focus mode", settings.focusMode, () => onChange({ focusMode: !settings.focusMode }))}
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {tab === "data" ? (
+          <div className="settings-section-stack">
+            <section className="settings-section">
+              <h3>IMPORT & EXPORT</h3>
+              <div className="settings-card">
+                {actionRow("Import notes…", onImport)}
+                {actionRow("Export all notes as ZIP", onExport)}
+              </div>
+            </section>
+            <section className="settings-section">
+              <h3>SETTINGS</h3>
+              <div className="settings-card">
+                {actionRow("Export settings", exportSettings)}
+                {actionRow("Import settings…", importSettings)}
+              </div>
+            </section>
+            <section className="settings-section">
+              <h3>NOTIFICATIONS</h3>
+              <div className="settings-card">
+                {switchRow("Notify on remote changes", settings.notifyRemoteChanges, () => onChange({ notifyRemoteChanges: !settings.notifyRemoteChanges }))}
+              </div>
+            </section>
+          </div>
+        ) : null}
 
         {tab === "advanced" ? (
           <div className="settings-section-stack">
@@ -1104,9 +1202,7 @@ function SettingsModal({
                   <Icon path={mdiDeleteOutline} size={0.75} />
                   <span>Reset All Settings</span>
                 </button>
-                <p className="settings-note" style={{ margin: "8px 0 0", fontSize: "12px", color: "var(--muted)" }}>
-                  This will reset all preferences to their default values. Your notes will not be affected.
-                </p>
+                <p className="settings-note">This will reset all preferences to defaults. Your notes will not be affected.</p>
               </div>
             </section>
             <section className="settings-section">
