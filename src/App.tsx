@@ -524,6 +524,18 @@ function AppShell() {
                   previewLines={state.settings.previewLines}
                   onSelect={() => selectNote(note)}
                   onPin={() => state.togglePin(note.id)}
+                  onDelete={() => {
+                    if (isTrashView) {
+                      state.deleteForever(note.id);
+                      toast.success("Note deleted forever");
+                      const nextDeleted = deletedNotes.find(n => n.id !== note.id);
+                      if (nextDeleted) state.selectNote(nextDeleted.id);
+                      else state.setSelectedTag("all");
+                    } else {
+                      state.deleteNote(note.id);
+                      toast.success("Note moved to trash");
+                    }
+                  }}
                   isTrashView={isTrashView}
                 />
               )}
@@ -547,6 +559,10 @@ function AppShell() {
                     noteListOpen={noteListOpen}
                     showNoteList={() => setNoteListOpen(true)}
                     createNote={createNote}
+                    deleteNote={() => {
+                      state.deleteNote(selectedNote.id);
+                      toast.success("Canvas moved to trash");
+                    }}
                   />
                 ) : (
                   <Editor
@@ -635,7 +651,7 @@ function MobileTopBar({
   );
 }
 
-function NoteListItem({ note, selected, previewLines, onSelect, onPin, isTrashView = false }: { note: Note; selected: boolean; previewLines: number; onSelect: () => void; onPin: () => void; isTrashView?: boolean }) {
+function NoteListItem({ note, selected, previewLines, onSelect, onPin, onDelete, isTrashView = false }: { note: Note; selected: boolean; previewLines: number; onSelect: () => void; onPin: () => void; onDelete: () => void; isTrashView?: boolean }) {
   const preview = note.noteType === "canvas"
     ? "Canvas whiteboard"
     : note.content.replace(/\s+/g, " ") || "Empty note";
@@ -644,9 +660,26 @@ function NoteListItem({ note, selected, previewLines, onSelect, onPin, isTrashVi
     <article className={`note-list-item ${selected ? "selected" : ""}`} onClick={onSelect}>
       <div className="note-list-title">
         <span>{note.title}</span>
-        {!isTrashView ? <button type="button" aria-label="Toggle pin" onClick={event => { event.stopPropagation(); onPin(); }}>
-          <Icon path={note.isPinned ? mdiPin : mdiPinOutline} size={0.68} />
-        </button> : null}
+        <div className="note-list-item-actions">
+          {!isTrashView ? (
+            <button
+              type="button"
+              aria-label="Toggle pin"
+              className="note-action-btn"
+              onClick={event => { event.stopPropagation(); onPin(); }}
+            >
+              <Icon path={note.isPinned ? mdiPin : mdiPinOutline} size={0.68} />
+            </button>
+          ) : null}
+          <button
+            type="button"
+            aria-label={isTrashView ? "Delete forever" : "Move to trash"}
+            className="note-action-btn note-delete-btn"
+            onClick={event => { event.stopPropagation(); onDelete(); }}
+          >
+            <Icon path={mdiDeleteOutline} size={0.68} />
+          </button>
+        </div>
       </div>
       <p style={{ WebkitLineClamp: previewLines }}>{preview}</p>
       <div className="note-meta">

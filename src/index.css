@@ -409,11 +409,37 @@ button {
 .note-list-title button {
   display: grid;
   place-items: center;
-  margin-left: auto;
   border: 0;
   background: transparent;
   color: var(--muted);
   cursor: pointer;
+}
+
+.note-list-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.note-action-btn {
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 150ms, color 150ms, background 150ms;
+}
+
+.note-list-item:hover .note-action-btn,
+.note-list-item.selected .note-action-btn {
+  opacity: 1;
+}
+
+.note-delete-btn:hover {
+  color: var(--danger) !important;
+  background: oklch(from var(--danger) l c h / 0.12);
 }
 
 .note-list-item p {

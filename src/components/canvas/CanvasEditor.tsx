@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { Tldraw, Editor } from "tldraw";
 import "tldraw/tldraw.css";
 import { Icon } from "@/components/icons/Icon";
-import { mdiPencil, mdiClose, mdiSquareEditOutline, mdiViewSplitVertical } from "@mdi/js";
+import { mdiPencil, mdiClose, mdiSquareEditOutline, mdiViewSplitVertical, mdiDeleteOutline } from "@mdi/js";
 import type { Note } from "@/lib/noteLogic";
 
 type CanvasEditorProps = {
@@ -11,9 +11,10 @@ type CanvasEditorProps = {
   noteListOpen: boolean;
   showNoteList: () => void;
   createNote: () => void;
+  deleteNote: () => void;
 };
 
-export function CanvasEditor({ note, onUpdate, noteListOpen, showNoteList, createNote }: CanvasEditorProps) {
+export function CanvasEditor({ note, onUpdate, noteListOpen, showNoteList, createNote, deleteNote }: CanvasEditorProps) {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(note.title);
@@ -143,6 +144,27 @@ export function CanvasEditor({ note, onUpdate, noteListOpen, showNoteList, creat
               }}
             >
               <Icon path={mdiPencil} size={0.7} />
+            </button>
+            <button
+              type="button"
+              onClick={deleteNote}
+              aria-label="Move canvas to trash"
+              title="Move to trash"
+              style={{
+                padding: "4px 8px",
+                background: "transparent",
+                border: "1px solid var(--danger)",
+                borderRadius: "6px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                color: "var(--danger)",
+                fontSize: "12px",
+              }}
+            >
+              <Icon path={mdiDeleteOutline} size={0.7} />
+              <span>Delete</span>
             </button>
           </>
         )}
